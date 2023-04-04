@@ -39,9 +39,9 @@ public class BigFileController {
      * @Title: 判断文件是否上传过，是否存在分片，断点续传
      * @MethodName: checkBigFile
      * @Exception
-     * @Description: 文件已存在，下标为-1
-     * 文件没有上传过，下标为零
-     * 文件上传中断过，返回当前已经上传到的下标
+     * @Description: 文件已存在，1
+     * 文件没有上传过，0
+     * 文件上传中断过，2 以及现在有的数组分片索引
      */
     @RequestMapping(value = "/check", method = RequestMethod.POST)
     @ResponseBody
@@ -51,16 +51,16 @@ public class BigFileController {
         File mergeMd5Dir = new File(fileStorePath + "/" + "merge" + "/" + fileMd5);
         if (mergeMd5Dir.exists()) {
             mergeMd5Dir.mkdirs();
-            jr.setResultCode(1);//文件已存在，下标为-1
+            jr.setResultCode(1);//文件已存在
             return jr;
         }
         // 读取目录里的所有文件
         File dir = new File(fileStorePath + "/" + fileMd5);
         File[] childs = dir.listFiles();
         if (childs == null) {
-            jr.setResultCode(0);//文件没有上传过，下标为零
+            jr.setResultCode(0);//文件没有上传过
         } else {
-            jr.setResultCode(2);//文件上传中断过，返回当前已经上传到的下标
+            jr.setResultCode(2);//文件上传中断过，除了状态码为2，还有已上传的文件分片索引
             List<String> list = Arrays.stream(childs).map(f->f.getName()).collect(Collectors.toList());
             jr.setResultData(list.toArray());
         }
@@ -69,7 +69,6 @@ public class BigFileController {
 
     /**
      * 上传文件
-     *
      * @param param
      * @param request
      * @return
@@ -86,13 +85,13 @@ public class BigFileController {
         int chunkIndex = param.getChunk();
         if (isMultipart) {
             File file = new File(fileStorePath + "/" + param.getMd5());
-            if (!file.exists()) {
+            if (!file.exists()) { // 没有文件创建文件
                 file.mkdir();
             }
             File chunkFile = new File(
                     fileStorePath + "/" + param.getMd5() + "/" + chunkIndex);
             try {
-                FileUtils.copyInputStreamToFile(param.getFile().getInputStream(), chunkFile);
+                FileUtils.copyInputStreamToFile(param.getFile().getInputStream(), chunkFile); // 流文件操作
             } catch (Exception e) {
                 jr.setResultCode(-1);
                 e.printStackTrace();
@@ -102,14 +101,13 @@ public class BigFileController {
         File dir = new File(fileStorePath + "/" + param.getMd5());
         File[] childs = dir.listFiles();
         if(childs!=null){
-            jr.setResultData(childs.length);
+            jr.setResultData(childs.length); // 返回上传了几个，即为上传进度
         }
         return jr;
     }
 
     /**
      * 分片上传成功之后，合并文件
-     *
      * @param request
      * @return
      */
