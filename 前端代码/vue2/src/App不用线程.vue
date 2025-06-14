@@ -118,7 +118,7 @@ export default {
       // 说明曾经上传过，需要过滤一下，曾经上传过的就不用再上传了
       else {
         formDataList = chunks
-          .filter((index) => {
+          .filter((_, index) => {
             return !this.doneFileList.includes(index);
           })
           .map((item, index) => {

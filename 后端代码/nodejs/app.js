@@ -16,8 +16,7 @@ const upload = multer({ dest: FILE_STORE_PATH }); // multer文件上传中间件
 fs.ensureDirSync(FILE_STORE_PATH);
 fs.ensureDirSync(mergeDir);
 
-// 响应格式统一处理
-const successResponse = (data = {}, message = '成功') => ({ resultCode: 0, resultData: data, message });
+// 错误响应格式
 const errorResponse = (code = -1, message = '失败') => ({ resultCode: code, message });
 
 // 检查文件状态接口
@@ -29,20 +28,20 @@ app.post('/bigfile/check', (req, res) => {
     try {
         // 检查是否完整文件已存在
         if (fs.existsSync(mergePath)) {
-            return res.json(successResponse(1, '文件已存在'));
+            return res.json({ resultCode: 1, message: '文件已存在' });
         }
 
         // 检查是否有分片文件
         if (fs.existsSync(chunkDir)) {
             const chunks = fs.readdirSync(chunkDir);
-            return res.json(successResponse({
+            return res.json({
                 resultCode: 2,
-                resultData: chunks.map(c => parseInt(c)) // 返回数字索引数组
-            }));
+                resultData: chunks.map(c => parseInt(c)) // 返回已经存在的分片索引数组
+            });
         }
 
         // 文件不存在，全新上传
-        res.json(successResponse({ resultCode: 0, resultData: [] }));
+        res.json({ resultCode: 0, resultData: [] });
 
     } catch (error) {
         console.error('检查文件错误:', error);
@@ -68,10 +67,10 @@ app.post('/bigfile/upload', upload.single('file'), (req, res) => {
         // 获取已上传分片数量
         const uploadedChunks = fs.readdirSync(chunkDir).length;
 
-        res.json(successResponse({
+        res.json({
             resultCode: 0,
             resultData: uploadedChunks // 返回已上传分片数用于进度计算
-        }));
+        });
 
     } catch (error) {
         console.error('分片上传错误:', error);
@@ -111,7 +110,7 @@ app.post('/bigfile/merge', async (req, res) => {
         // // 清理分片文件和目录
         // fs.removeSync(chunkDir);
 
-        res.json(successResponse({ resultCode: 0 }, '文件合并成功'));
+        res.json({ resultCode: 0, message: '文件合并成功' });
 
     } catch (error) {
         console.error('合并文件错误:', error);
